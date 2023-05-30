@@ -2,9 +2,11 @@
 /**
  * Plugin Name: Axelle CryptoPay
  * Description: This plugin allows you to accept multiple forms of cryptocurrency as payment for products or services.
- * Version: 1.1
+ * Version: 1.1.2
  * Author: Johnathon M. Horner
  * Author URI: https://github.com/jhorner6511
+ * License: GNU v3.0
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
  */
 
 add_action( 'plugins_loaded', 'crypto_payment_init' );
@@ -16,10 +18,13 @@ function crypto_payment_init() {
         'bitcoin',
         'ethereum',
         'litecoin',
+        'ripple',
+        'cardano',
+        'dogecoin',
     ];
 
     // Add a new payment method to WooCommerce.
-    add_action( 'woocommerce_payment_methods', function() {
+    add_action( 'woocommerce_payment_methods', function() use ( $cryptocurrencies ) {
 
         // Get the current currency.
         $currency = get_woocommerce_currency();
@@ -53,6 +58,7 @@ class CryptoPayment_Gateway extends WC_Payment_Gateway {
             'supports_refunds',
         ];
 
+        $this->cryptocurrency = $cryptocurrency;
         $this->currency = $currency;
     }
 
@@ -68,7 +74,7 @@ class CryptoPayment_Gateway extends WC_Payment_Gateway {
         $amount = $order->get_total();
 
         // Create a new cryptocurrency transaction.
-        $transaction = new CryptoTransaction( $cryptocurrency, $address, $amount );
+        $transaction = new CryptoTransaction( $this->cryptocurrency, $address, $amount );
 
         // Send the transaction.
         $transaction->send();
@@ -105,13 +111,13 @@ class CryptoTransaction {
     }
 }
 
-add_filter( 'woocommerce_checkout_payment_fields', function( $fields ) {
+add_filter( 'woocommerce_checkout_payment_fields', function( $fields ) use ( $cryptocurrencies ) {
 
     // Add a cryptocurrency selector to the checkout form.
     $fields['cryptocurrency'] = [
         'label' => __( 'Select Cryptocurrency', 'woocommerce' ),
         'type' => 'select',
-        'options' => $cryptocurrencies,
+        'options' => array_combine( $cryptocurrencies, $cryptocurrencies ),
     ];
 
     return $fields;
